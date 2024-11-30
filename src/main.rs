@@ -9,18 +9,13 @@ use bevy::prelude::*;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_systems(Startup, startup_system)
+        .add_systems(Startup, (startup_system, startup_ui))
         .add_systems(Update, camera_movement_system)
-        .add_systems(Update, spawn_in_yo_face)
-        .add_systems(Update, rotate_cubes)
         .run();
 }
 
 #[derive(Component)]
 struct Cam;
-
-#[derive(Component)]
-struct Naoxi;
 
 fn startup_system(
     mut commands: Commands,
@@ -42,36 +37,30 @@ fn startup_system(
     commands.spawn(floor);
 }
 
-fn spawn_in_yo_face(
-    mut commands: Commands,
-    mut mesh: ResMut<Assets<Mesh>>,
-    mut material: ResMut<Assets<StandardMaterial>>,
-    mouse_evt: Res<ButtonInput<MouseButton>>,
-    cam: Query<&Transform, With<Cam>>,
-) {
-    if mouse_evt.just_pressed(MouseButton::Left) {
-        println!("spawned");
-        let cam = cam.single();
-        let cube = mesh.add(Cuboid::new(5., 5., 5.));
-        let cube_bundle = MaterialMeshBundle {
-            mesh: cube,
-            material: material.add(Color::WHITE),
-            transform: *cam,
-            ..Default::default()
-        };
-        commands.spawn((Naoxi, cube_bundle));
-    }
-}
-
-fn rotate_cubes(mut cubes: Query<&mut Transform, With<Naoxi>>, time: Res<Time>) {
-    for mut cubes in cubes.iter_mut() {
-        cubes.rotate(Quat::from_euler(
-            EulerRot::YXZ,
-            0.,
-            1. * time.delta_seconds(),
-            0.,
-        ));
-    }
+fn startup_ui(mut commands: Commands) {
+    // spawn ui
+    let ui_screen = NodeBundle {
+        style: Style {
+            height: Val::Percent(100.),
+            width: Val::Percent(100.),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        ..default()
+    };
+    let crosshair = NodeBundle {
+        style: Style {
+            height: Val::Px(5.),
+            width: Val::Px(5.),
+            ..default()
+        },
+        background_color: BackgroundColor(Color::WHITE),
+        ..default()
+    };
+    let ui = commands.spawn(ui_screen).id();
+    let crosshair = commands.spawn(crosshair).id();
+    commands.entity(ui).push_children(&[crosshair]);
 }
 
 fn camera_movement_system(
