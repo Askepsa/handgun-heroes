@@ -7,9 +7,10 @@ use handgun_heroes::startup::GameStartUp;
 // - [x] add objects to shoot
 //  - [x] fix target object spawn system
 // - [x] raycast and mouse event button
-// - [ ] add scoreboard
+// - [x] add scoreboard
 // - [ ] add timer
 // - [ ] make camera's vertical rotation fixed
+// - [ ] investiagate and fix warning why a specific vec is not normalized
 
 fn main() {
     App::new()

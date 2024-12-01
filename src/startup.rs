@@ -13,14 +13,16 @@ pub struct GameStartUp;
 impl Plugin for GameStartUp {
     fn build(&self, app: &mut App) {
         app.insert_resource(TargetState(HashMap::new()))
-            .add_systems(Startup, (startup_system, startup_ui))
+            .insert_resource(ScoreBoard(0))
+            .add_systems(Startup, (startup_system, startup_ui, startup_scoreboard_ui))
+            .add_systems(Update, scoreboard_system)
             .add_systems(Update, camera_movement_system)
             .add_systems(Update, debug_system)
             .add_systems(Update, target_spawn_system)
             .add_systems(Update, reset_system.run_if(input_pressed(KeyCode::KeyR)))
             .add_systems(
                 Update,
-                target_shoot_system.run_if(input_just_pressed(KeyCode::KeyV)),
+                target_shoot_system.run_if(input_just_pressed(MouseButton::Left)),
             );
     }
 }
@@ -39,6 +41,12 @@ struct Target {
 
 #[derive(Resource)]
 struct TargetState(HashMap<Entity, Target>);
+
+#[derive(Component)]
+struct ScoreBoardMarker;
+
+#[derive(Resource)]
+struct ScoreBoard(i32);
 
 fn startup_system(
     mut commands: Commands,
@@ -68,6 +76,7 @@ fn startup_system(
 fn startup_ui(mut commands: Commands) {
     let ui_screen = NodeBundle {
         style: Style {
+            position_type: PositionType::Absolute,
             height: Val::Percent(100.),
             width: Val::Percent(100.),
             justify_content: JustifyContent::Center,
@@ -76,7 +85,9 @@ fn startup_ui(mut commands: Commands) {
         },
         ..default()
     };
-    let crosshair = NodeBundle {
+    let ui_entity = commands.spawn(ui_screen).id();
+
+    let crosshair_bundle = NodeBundle {
         style: Style {
             height: Val::Px(5.),
             width: Val::Px(5.),
@@ -85,9 +96,66 @@ fn startup_ui(mut commands: Commands) {
         background_color: BackgroundColor(Color::WHITE),
         ..default()
     };
-    let ui = commands.spawn(ui_screen).id();
-    let crosshair = commands.spawn(crosshair).id();
-    commands.entity(ui).push_children(&[crosshair]);
+    let crosshair_entity = commands.spawn(crosshair_bundle).id();
+    commands
+        .entity(ui_entity)
+        .push_children(&[crosshair_entity]);
+}
+
+fn startup_scoreboard_ui(mut commands: Commands, score_board: Res<ScoreBoard>) {
+    let scoreboard_ui = NodeBundle {
+        style: Style {
+            width: Val::Percent(100.),
+            height: Val::Percent(100.),
+            position_type: PositionType::Absolute,
+            display: Display::Flex,
+            justify_content: JustifyContent::Center,
+            padding: UiRect::all(Val::Px(50.)),
+            ..default()
+        },
+        ..default()
+    };
+    let scoreboard = commands.spawn(scoreboard_ui).id();
+    let text_bundle = TextBundle::from_section(
+        &format!("Score: {}", score_board.0),
+        TextStyle {
+            font_size: 50.,
+            ..default()
+        },
+    );
+    let text_entity = commands.spawn((ScoreBoardMarker, text_bundle)).id();
+    let scoreboard_entity = commands
+        .entity(scoreboard)
+        .push_children(&[text_entity])
+        .id();
+
+    let ui_screen = NodeBundle {
+        style: Style {
+            height: Val::Percent(100.),
+            width: Val::Percent(100.),
+            ..default()
+        },
+        ..default()
+    };
+    let ui_entity = commands.spawn(ui_screen).id();
+
+    commands
+        .entity(ui_entity)
+        .push_children(&[scoreboard_entity]);
+}
+
+fn scoreboard_system(
+    scoreboard_points: Res<ScoreBoard>,
+    mut scoreboard_ui: Query<&mut Text, With<ScoreBoardMarker>>,
+) {
+    let mut score_ui = scoreboard_ui.single_mut();
+    *score_ui = Text::from_section(
+        format!("Score: {}", scoreboard_points.0),
+        TextStyle {
+            font_size: 50.,
+            ..default()
+        },
+    );
 }
 
 fn debug_system(input: Res<ButtonInput<MouseButton>>, cam_pos: Query<&Transform, With<CamMarker>>) {
@@ -102,6 +170,7 @@ fn target_shoot_system(
     cam: Query<&Transform, With<CamMarker>>,
     mut target_state: ResMut<TargetState>,
     rapier_context: Res<RapierContext>,
+    mut scoreboard: ResMut<ScoreBoard>,
 ) {
     let cam = cam.single();
     let ray_context = rapier_context.cast_ray(
@@ -124,10 +193,12 @@ fn target_shoot_system(
             .remove_entry(&entity)
             .expect("sumabog ang entity");
         commands.entity(entity).despawn();
-        println!("noice");
+        scoreboard.0 += 100;
     } else {
-        println!("missed lol");
+        scoreboard.0 -= 100;
     }
+
+    println!("Score: {}", scoreboard.0);
 }
 
 fn target_spawn_system(
