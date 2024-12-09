@@ -1,4 +1,5 @@
 use crate::enemy::*;
+use crate::global_physics::*;
 use crate::player::*;
 use crate::ui::*;
 use bevy::input::common_conditions::input_just_pressed;
@@ -81,26 +82,5 @@ fn debug_system(input: Res<ButtonInput<MouseButton>>, cam_pos: Query<&Transform,
     let cam_pos = cam_pos.single();
     if input.just_pressed(MouseButton::Left) {
         info!("{:?}", cam_pos.translation);
-    }
-}
-
-fn player_enemy_collide_system(
-    mut commands: Commands,
-    player_collider: Query<Entity, With<PlayerMarker>>,
-    enemies: Query<Entity, With<EnemyMarker>>,
-    rapier_context: Res<RapierContext>,
-    mut player_health: ResMut<PlayerHealth>,
-    mut enemy_state: ResMut<EnemyState>,
-) {
-    let player = player_collider.single();
-    for enemy in &enemies {
-        // TEMP FIX
-        if let Some(_) = rapier_context.intersection_pair(player, enemy) {
-            if player_health.0 != 0 {
-                player_health.0 -= 1;
-            }
-            println!("Health: {}", player_health.0);
-            eliminate_enemy(&mut commands, enemy, &mut enemy_state);
-        }
     }
 }
