@@ -1,4 +1,4 @@
-use bevy::input::common_conditions::{input_just_pressed, input_pressed};
+use bevy::input::common_conditions::input_just_pressed;
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
@@ -14,15 +14,20 @@ impl Plugin for GameStartUp {
     fn build(&self, app: &mut App) {
         app.insert_resource(TargetState(HashMap::new()))
             .insert_resource(ScoreBoard(0))
+            .insert_resource(PlayerHealth(5)) // get hit 3 times and ur ded
             .add_systems(Startup, (startup_system, startup_ui, startup_scoreboard_ui))
             .add_systems(Update, scoreboard_system)
             .add_systems(Update, camera_movement_system)
             .add_systems(Update, debug_system)
-            .add_systems(Update, target_spawn_system)
-            .add_systems(Update, reset_system.run_if(input_pressed(KeyCode::KeyR)))
+            .add_systems(Update, (target_spawn_system, move_enemy_system))
+            .add_systems(Update, player_enemy_collide_system)
             .add_systems(
                 Update,
-                target_shoot_system.run_if(input_just_pressed(MouseButton::Left)),
+                reset_system.run_if(input_just_pressed(KeyCode::KeyR)),
+            )
+            .add_systems(
+                Update,
+                target_shoot_system.run_if(input_just_pressed(KeyCode::KeyV)),
             );
     }
 }
@@ -48,17 +53,32 @@ struct ScoreBoardMarker;
 #[derive(Resource)]
 struct ScoreBoard(i32);
 
+#[derive(Resource)]
+struct PlayerHealth(usize);
+
+#[derive(Component)]
+struct PlayerMarker;
+
 fn startup_system(
     mut commands: Commands,
     mut mesh: ResMut<Assets<Mesh>>,
     mut material: ResMut<Assets<StandardMaterial>>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
 ) {
+    let player_collider = commands
+        .spawn(Collider::capsule(
+            Vect::new(0., 0., 0.),
+            Vect::new(0., 5., 0.),
+            5.,
+        ))
+        .insert(PlayerMarker)
+        .insert(CollisionGroups::new(Group::GROUP_1, Group::GROUP_2))
+        .id();
     let cam = Camera3dBundle {
         transform: Transform::from_xyz(0., 3., 0.),
         ..Default::default()
     };
-    commands.spawn((CamMarker, cam));
+    commands.spawn((CamMarker, cam)).add_child(player_collider);
 
     let plane = Plane3d::new(Vec3::new(0., 1., 0.), Vec2::new(20., 20.));
     let floor = MaterialMeshBundle {
@@ -177,10 +197,8 @@ fn target_shoot_system(
         cam.translation,
         *cam.forward(),
         255.,
-        true,
-        bevy_rapier3d::prelude::QueryFilter {
-            ..Default::default()
-        },
+        false,
+        QueryFilter::default().groups(CollisionGroups::new(Group::default(), Group::GROUP_2)),
     );
 
     // since we're only dealing with spheres
@@ -188,17 +206,49 @@ fn target_shoot_system(
     // check its groups
     if let Some((entity, _)) = ray_context {
         // plus points if clicked
-        let (entity, _) = target_state
-            .0
-            .remove_entry(&entity)
-            .expect("sumabog ang entity");
-        commands.entity(entity).despawn();
+        eliminate_enemy(&mut commands, entity, &mut target_state);
         scoreboard.0 += 100;
     } else {
         scoreboard.0 -= 100;
     }
 
     println!("Score: {}", scoreboard.0);
+}
+
+fn player_enemy_collide_system(
+    mut commands: Commands,
+    player_collider: Query<Entity, With<PlayerMarker>>,
+    enemies: Query<Entity, With<TargetMarker>>,
+    rapier_context: Res<RapierContext>,
+    mut player_health: ResMut<PlayerHealth>,
+    mut target_state: ResMut<TargetState>,
+) {
+    let player = player_collider.single();
+    for enemy in &enemies {
+        // TEMP FIX
+        if let Some(_) = rapier_context.intersection_pair(player, enemy) {
+            if player_health.0 != 0 {
+                player_health.0 -= 1;
+            }
+            println!("Health: {}", player_health.0);
+            eliminate_enemy(&mut commands, enemy, &mut target_state);
+        }
+    }
+}
+
+fn eliminate_enemy(commands: &mut Commands, enemy: Entity, target_state: &mut ResMut<TargetState>) {
+    let Some((enemy, _)) = target_state.0.remove_entry(&enemy) else {
+        return;
+    };
+    target_state.0.remove(&enemy);
+    commands.entity(enemy).despawn_recursive();
+}
+
+// make them strafe to make them appear they're dodging
+fn move_enemy_system(mut enem_pos: Query<&mut Transform, With<TargetMarker>>, time: Res<Time>) {
+    for mut pos in enem_pos.iter_mut() {
+        pos.translation.z += 10. * time.delta_seconds();
+    }
 }
 
 fn target_spawn_system(
@@ -235,29 +285,29 @@ fn target_spawn_system(
         let sphere = Sphere { radius: 1. };
         let sphere_bundle = MaterialMeshBundle {
             mesh: mesh.add(sphere),
-            transform: Transform::from_xyz(x as f32, y as f32, -15.),
+            transform: Transform::from_xyz(x as f32, y as f32, -50.),
             material: material.add(Color::WHITE),
             ..default()
         };
 
         let target_id = commands
             .spawn((TargetMarker, sphere_bundle))
+            .insert(Sensor)
             .insert(Collider::ball(1.))
+            .insert(CollisionGroups::new(Group::GROUP_2, Group::GROUP_1))
             .id();
-
         target_state.0.insert(target_id, Target { x, y });
     }
 }
 
 fn reset_system(
     mut commands: Commands,
-    targets: Query<Entity, With<TargetMarker>>,
+    enemies: Query<Entity, With<TargetMarker>>,
     mut target_state: ResMut<TargetState>,
 ) {
-    for target in &targets {
-        commands.entity(target).despawn();
+    for enemy in &enemies {
+        eliminate_enemy(&mut commands, enemy, &mut target_state);
     }
-    target_state.0.clear();
 }
 
 fn camera_movement_system(
