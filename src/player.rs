@@ -1,15 +1,46 @@
 use crate::enemy::{eliminate_enemy, EnemyState};
 use crate::startup::*;
 use crate::ui::*;
+use bevy::input::common_conditions::input_just_pressed;
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
+
+pub struct PlayerPlugin;
+
+impl Plugin for PlayerPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, init_player)
+            .add_systems(Update, player_movement_system)
+            .add_systems(
+                Update,
+                player_shoot_system.run_if(input_just_pressed(KeyCode::KeyV)),
+            );
+    }
+}
 
 #[derive(Resource)]
 pub struct PlayerHealth(pub usize);
 
 #[derive(Component)]
 pub struct PlayerMarker;
+
+pub fn init_player(mut commands: Commands) {
+    let player_collider = commands
+        .spawn(Collider::capsule(
+            Vect::new(0., 0., 0.),
+            Vect::new(0., 5., 0.),
+            5.,
+        ))
+        .insert(PlayerMarker)
+        .insert(CollisionGroups::new(Group::GROUP_1, Group::GROUP_2))
+        .id();
+    let cam = Camera3dBundle {
+        transform: Transform::from_xyz(0., 3., 0.),
+        ..Default::default()
+    };
+    commands.spawn((CamMarker, cam)).add_child(player_collider);
+}
 
 pub fn player_movement_system(
     mut mouse_evt: EventReader<MouseMotion>,

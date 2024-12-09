@@ -4,6 +4,14 @@ use bevy_rapier3d::prelude::*;
 use rand::{thread_rng, Rng};
 use std::collections::{HashMap, HashSet};
 
+pub struct EnemyPlugin;
+
+impl Plugin for EnemyPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, (enemy_spawn_system, enemy_movement_system));
+    }
+}
+
 #[derive(Component)]
 pub struct EnemyMarker;
 
@@ -50,8 +58,8 @@ pub fn enemy_spawn_system(
 
     let mut unique_pos: HashSet<(i32, i32)> = enemy_state
         .0
-        .iter()
-        .map(|(_, enemy)| (enemy.x, enemy.y))
+        .values()
+        .map(|enemy| (enemy.x, enemy.y))
         .collect();
 
     let mut rng = thread_rng();

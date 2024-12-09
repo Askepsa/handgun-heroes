@@ -1,5 +1,14 @@
 use bevy::prelude::*;
 
+pub struct UiPlugin;
+
+impl Plugin for UiPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, (init_crosshair_ui_system, init_scoreboard_system))
+            .add_systems(Update, refresh_scoreboard_system);
+    }
+}
+
 #[derive(Component)]
 pub struct ScoreBoardMarker;
 
