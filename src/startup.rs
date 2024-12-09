@@ -1,10 +1,10 @@
+use crate::enemy::*;
 use crate::player::*;
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
 use bevy_rapier3d::prelude::*;
-use rand::{thread_rng, Rng};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 pub const ENEMY_SPAWN_LIMIT: usize = 3;
 
@@ -19,7 +19,7 @@ impl Plugin for GameStartUp {
             .add_systems(Update, scoreboard_system)
             .add_systems(Update, player_movement_system)
             .add_systems(Update, debug_system)
-            .add_systems(Update, (enemy_spawn_system, move_enemy_system))
+            .add_systems(Update, (enemy_spawn_system, enemy_movement_system))
             .add_systems(Update, player_enemy_collide_system)
             .add_systems(
                 Update,
@@ -34,18 +34,6 @@ impl Plugin for GameStartUp {
 
 #[derive(Component)]
 pub struct CamMarker;
-
-#[derive(Component)]
-pub struct EnemyMarker;
-
-#[derive(Component, Debug)]
-struct EnemyPos {
-    x: i32,
-    y: i32,
-}
-
-#[derive(Resource)]
-pub struct EnemyState(HashMap<Entity, EnemyPos>);
 
 #[derive(Component)]
 struct ScoreBoardMarker;
@@ -197,83 +185,5 @@ fn player_enemy_collide_system(
             println!("Health: {}", player_health.0);
             eliminate_enemy(&mut commands, enemy, &mut enemy_state);
         }
-    }
-}
-
-pub fn eliminate_enemy(
-    commands: &mut Commands,
-    enemy: Entity,
-    enemy_state: &mut ResMut<EnemyState>,
-) {
-    let Some((enemy, _)) = enemy_state.0.remove_entry(&enemy) else {
-        return;
-    };
-    enemy_state.0.remove(&enemy);
-    commands.entity(enemy).despawn_recursive();
-}
-
-// make them strafe to make them appear they're dodging
-fn move_enemy_system(mut enem_pos: Query<&mut Transform, With<EnemyMarker>>, time: Res<Time>) {
-    for mut pos in enem_pos.iter_mut() {
-        pos.translation.z += 10. * time.delta_seconds();
-    }
-}
-
-fn enemy_spawn_system(
-    mut commands: Commands,
-    mut mesh: ResMut<Assets<Mesh>>,
-    mut material: ResMut<Assets<StandardMaterial>>,
-    mut enemy_state: ResMut<EnemyState>,
-) {
-    if enemy_state.0.len() >= ENEMY_SPAWN_LIMIT {
-        return;
-    }
-
-    let mut unique_pos: HashSet<(i32, i32)> = enemy_state
-        .0
-        .iter()
-        .map(|(_, enemy)| (enemy.x, enemy.y))
-        .collect();
-
-    let mut rng = thread_rng();
-    while unique_pos.len() != ENEMY_SPAWN_LIMIT {
-        let (x, y) = (rng.gen_range(-5..=5), rng.gen_range(3..=6));
-        unique_pos.insert((x, y));
-    }
-
-    for (x, y) in unique_pos {
-        if enemy_state
-            .0
-            .iter()
-            .any(|(_, enemy)| enemy.x == x && enemy.y == y)
-        {
-            continue;
-        }
-
-        let sphere = Sphere { radius: 1. };
-        let sphere_bundle = MaterialMeshBundle {
-            mesh: mesh.add(sphere),
-            transform: Transform::from_xyz(x as f32, y as f32, -50.),
-            material: material.add(Color::WHITE),
-            ..default()
-        };
-
-        let enemy_id = commands
-            .spawn((EnemyMarker, sphere_bundle))
-            .insert(Sensor)
-            .insert(Collider::ball(1.))
-            .insert(CollisionGroups::new(Group::GROUP_2, Group::GROUP_1))
-            .id();
-        enemy_state.0.insert(enemy_id, EnemyPos { x, y });
-    }
-}
-
-fn reset_system(
-    mut commands: Commands,
-    enemies: Query<Entity, With<EnemyMarker>>,
-    mut enemy_state: ResMut<EnemyState>,
-) {
-    for enemy in &enemies {
-        eliminate_enemy(&mut commands, enemy, &mut enemy_state);
     }
 }

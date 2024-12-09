@@ -1,3 +1,4 @@
+use crate::enemy::{eliminate_enemy, EnemyState};
 use crate::startup::*;
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
