@@ -6,20 +6,20 @@ use bevy_rapier3d::prelude::*;
 use rand::{thread_rng, Rng};
 use std::collections::{HashMap, HashSet};
 
-pub const TARGET_SPAWN_LIMIT: usize = 3;
+pub const ENEMY_SPAWN_LIMIT: usize = 3;
 
 pub struct GameStartUp;
 
 impl Plugin for GameStartUp {
     fn build(&self, app: &mut App) {
-        app.insert_resource(TargetState(HashMap::new()))
+        app.insert_resource(EnemyState(HashMap::new()))
             .insert_resource(ScoreBoard(0))
             .insert_resource(PlayerHealth(5)) // get hit 3 times and ur ded
             .add_systems(Startup, (startup_system, startup_ui, startup_scoreboard_ui))
             .add_systems(Update, scoreboard_system)
             .add_systems(Update, camera_movement_system)
             .add_systems(Update, debug_system)
-            .add_systems(Update, (target_spawn_system, move_enemy_system))
+            .add_systems(Update, (enemy_spawn_system, move_enemy_system))
             .add_systems(Update, player_enemy_collide_system)
             .add_systems(
                 Update,
@@ -27,7 +27,7 @@ impl Plugin for GameStartUp {
             )
             .add_systems(
                 Update,
-                target_shoot_system.run_if(input_just_pressed(KeyCode::KeyV)),
+                shoot_system.run_if(input_just_pressed(KeyCode::KeyV)),
             );
     }
 }
@@ -36,16 +36,16 @@ impl Plugin for GameStartUp {
 struct CamMarker;
 
 #[derive(Component)]
-struct TargetMarker;
+struct EnemyMarker;
 
 #[derive(Component, Debug)]
-struct Target {
+struct EnemyPos {
     x: i32,
     y: i32,
 }
 
 #[derive(Resource)]
-struct TargetState(HashMap<Entity, Target>);
+struct EnemyState(HashMap<Entity, EnemyPos>);
 
 #[derive(Component)]
 struct ScoreBoardMarker;
@@ -185,10 +185,10 @@ fn debug_system(input: Res<ButtonInput<MouseButton>>, cam_pos: Query<&Transform,
     }
 }
 
-fn target_shoot_system(
+fn shoot_system(
     mut commands: Commands,
     cam: Query<&Transform, With<CamMarker>>,
-    mut target_state: ResMut<TargetState>,
+    mut enemy_state: ResMut<EnemyState>,
     rapier_context: Res<RapierContext>,
     mut scoreboard: ResMut<ScoreBoard>,
 ) {
@@ -206,7 +206,7 @@ fn target_shoot_system(
     // check its groups
     if let Some((entity, _)) = ray_context {
         // plus points if clicked
-        eliminate_enemy(&mut commands, entity, &mut target_state);
+        eliminate_enemy(&mut commands, entity, &mut enemy_state);
         scoreboard.0 += 100;
     } else {
         scoreboard.0 -= 100;
@@ -218,10 +218,10 @@ fn target_shoot_system(
 fn player_enemy_collide_system(
     mut commands: Commands,
     player_collider: Query<Entity, With<PlayerMarker>>,
-    enemies: Query<Entity, With<TargetMarker>>,
+    enemies: Query<Entity, With<EnemyMarker>>,
     rapier_context: Res<RapierContext>,
     mut player_health: ResMut<PlayerHealth>,
-    mut target_state: ResMut<TargetState>,
+    mut enemy_state: ResMut<EnemyState>,
 ) {
     let player = player_collider.single();
     for enemy in &enemies {
@@ -231,53 +231,53 @@ fn player_enemy_collide_system(
                 player_health.0 -= 1;
             }
             println!("Health: {}", player_health.0);
-            eliminate_enemy(&mut commands, enemy, &mut target_state);
+            eliminate_enemy(&mut commands, enemy, &mut enemy_state);
         }
     }
 }
 
-fn eliminate_enemy(commands: &mut Commands, enemy: Entity, target_state: &mut ResMut<TargetState>) {
-    let Some((enemy, _)) = target_state.0.remove_entry(&enemy) else {
+fn eliminate_enemy(commands: &mut Commands, enemy: Entity, enemy_state: &mut ResMut<EnemyState>) {
+    let Some((enemy, _)) = enemy_state.0.remove_entry(&enemy) else {
         return;
     };
-    target_state.0.remove(&enemy);
+    enemy_state.0.remove(&enemy);
     commands.entity(enemy).despawn_recursive();
 }
 
 // make them strafe to make them appear they're dodging
-fn move_enemy_system(mut enem_pos: Query<&mut Transform, With<TargetMarker>>, time: Res<Time>) {
+fn move_enemy_system(mut enem_pos: Query<&mut Transform, With<EnemyMarker>>, time: Res<Time>) {
     for mut pos in enem_pos.iter_mut() {
         pos.translation.z += 10. * time.delta_seconds();
     }
 }
 
-fn target_spawn_system(
+fn enemy_spawn_system(
     mut commands: Commands,
     mut mesh: ResMut<Assets<Mesh>>,
     mut material: ResMut<Assets<StandardMaterial>>,
-    mut target_state: ResMut<TargetState>,
+    mut enemy_state: ResMut<EnemyState>,
 ) {
-    if target_state.0.len() >= TARGET_SPAWN_LIMIT {
+    if enemy_state.0.len() >= ENEMY_SPAWN_LIMIT {
         return;
     }
 
-    let mut unique_pos: HashSet<(i32, i32)> = target_state
+    let mut unique_pos: HashSet<(i32, i32)> = enemy_state
         .0
         .iter()
-        .map(|(_, target)| (target.x, target.y))
+        .map(|(_, enemy)| (enemy.x, enemy.y))
         .collect();
 
     let mut rng = thread_rng();
-    while unique_pos.len() != TARGET_SPAWN_LIMIT {
+    while unique_pos.len() != ENEMY_SPAWN_LIMIT {
         let (x, y) = (rng.gen_range(-5..=5), rng.gen_range(3..=6));
         unique_pos.insert((x, y));
     }
 
     for (x, y) in unique_pos {
-        if target_state
+        if enemy_state
             .0
             .iter()
-            .any(|(_, target)| target.x == x && target.y == y)
+            .any(|(_, enemy)| enemy.x == x && enemy.y == y)
         {
             continue;
         }
@@ -290,23 +290,23 @@ fn target_spawn_system(
             ..default()
         };
 
-        let target_id = commands
-            .spawn((TargetMarker, sphere_bundle))
+        let enemy_id = commands
+            .spawn((EnemyMarker, sphere_bundle))
             .insert(Sensor)
             .insert(Collider::ball(1.))
             .insert(CollisionGroups::new(Group::GROUP_2, Group::GROUP_1))
             .id();
-        target_state.0.insert(target_id, Target { x, y });
+        enemy_state.0.insert(enemy_id, EnemyPos { x, y });
     }
 }
 
 fn reset_system(
     mut commands: Commands,
-    enemies: Query<Entity, With<TargetMarker>>,
-    mut target_state: ResMut<TargetState>,
+    enemies: Query<Entity, With<EnemyMarker>>,
+    mut enemy_state: ResMut<EnemyState>,
 ) {
     for enemy in &enemies {
-        eliminate_enemy(&mut commands, enemy, &mut target_state);
+        eliminate_enemy(&mut commands, enemy, &mut enemy_state);
     }
 }
 
