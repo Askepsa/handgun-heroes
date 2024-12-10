@@ -4,7 +4,8 @@ pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (init_crosshair_ui_system, init_scoreboard_system))
+        app.insert_resource(ScoreBoard(0))
+            .add_systems(Startup, (init_crosshair_ui_system, init_scoreboard_system))
             .add_systems(Update, refresh_scoreboard_system);
     }
 }

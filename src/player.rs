@@ -1,5 +1,4 @@
 use crate::enemy::{eliminate_enemy, EnemyState};
-use crate::startup::*;
 use crate::ui::*;
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::input::mouse::MouseMotion;
@@ -10,7 +9,8 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, init_player)
+        app.insert_resource(PlayerHealth(5))
+            .add_systems(Startup, init_player)
             .add_systems(Update, player_movement_system)
             .add_systems(
                 Update,
@@ -18,6 +18,9 @@ impl Plugin for PlayerPlugin {
             );
     }
 }
+
+#[derive(Component)]
+pub struct CamMarker;
 
 #[derive(Resource)]
 pub struct PlayerHealth(pub usize);

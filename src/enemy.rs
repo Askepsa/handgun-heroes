@@ -1,14 +1,16 @@
-use crate::startup::*;
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use rand::{thread_rng, Rng};
 use std::collections::{HashMap, HashSet};
 
+pub const ENEMY_SPAWN_LIMIT: usize = 5;
+
 pub struct EnemyPlugin;
 
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (enemy_spawn_system, enemy_movement_system));
+        app.insert_resource(EnemyState(HashMap::new()))
+            .add_systems(Update, (enemy_spawn_system, enemy_movement_system));
     }
 }
 

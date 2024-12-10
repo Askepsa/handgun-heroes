@@ -5,18 +5,12 @@ use crate::ui::*;
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
-use std::collections::HashMap;
-
-pub const ENEMY_SPAWN_LIMIT: usize = 3;
 
 pub struct GameStartUp;
 
 impl Plugin for GameStartUp {
     fn build(&self, app: &mut App) {
-        app.insert_resource(EnemyState(HashMap::new()))
-            .insert_resource(ScoreBoard(0))
-            .insert_resource(PlayerHealth(5))
-            .add_plugins(UiPlugin)
+        app.add_plugins(UiPlugin)
             .add_plugins(PlayerPlugin)
             .add_plugins(EnemyPlugin)
             .add_plugins(GlobalPhysicsPlugin)
@@ -28,9 +22,6 @@ impl Plugin for GameStartUp {
             );
     }
 }
-
-#[derive(Component)]
-pub struct CamMarker;
 
 fn init_world_system(
     mut commands: Commands,
