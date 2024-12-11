@@ -1,12 +1,17 @@
 use bevy::prelude::*;
 
+use crate::{player::PlayerWeapon, startup::Kulay};
+
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ScoreBoard(0))
             .add_systems(Startup, (init_crosshair_ui_system, init_scoreboard_system))
-            .add_systems(Update, refresh_scoreboard_system);
+            .add_systems(
+                Update,
+                (refresh_scoreboard_system, refresh_crosshair_color_system),
+            );
     }
 }
 
@@ -15,6 +20,9 @@ pub struct ScoreBoardMarker;
 
 #[derive(Resource)]
 pub struct ScoreBoard(pub i32);
+
+#[derive(Component)]
+pub struct CrossHairMarker;
 
 // rename these shets
 pub fn refresh_scoreboard_system(
@@ -31,7 +39,17 @@ pub fn refresh_scoreboard_system(
     );
 }
 
-pub fn init_scoreboard_system(mut commands: Commands, score_board: Res<ScoreBoard>) {
+fn refresh_crosshair_color_system(
+    mut crosshair: Query<&mut BackgroundColor, With<CrossHairMarker>>,
+    player_weapon: Res<PlayerWeapon>,
+) {
+    *crosshair.single_mut() = match player_weapon.0 {
+        Kulay::Asul => BackgroundColor(Color::hsl(240., 1.0, 0.5)),
+        Kulay::Pula => BackgroundColor(Color::hsl(0., 0.5, 0.5)),
+    };
+}
+
+fn init_scoreboard_system(mut commands: Commands, score_board: Res<ScoreBoard>) {
     let scoreboard_ui = NodeBundle {
         style: Style {
             width: Val::Percent(100.),
@@ -73,7 +91,7 @@ pub fn init_scoreboard_system(mut commands: Commands, score_board: Res<ScoreBoar
         .push_children(&[scoreboard_entity]);
 }
 
-pub fn init_crosshair_ui_system(mut commands: Commands) {
+fn init_crosshair_ui_system(mut commands: Commands) {
     let ui_screen = NodeBundle {
         style: Style {
             position_type: PositionType::Absolute,
@@ -93,10 +111,10 @@ pub fn init_crosshair_ui_system(mut commands: Commands) {
             width: Val::Px(5.),
             ..default()
         },
-        background_color: BackgroundColor(Color::WHITE),
+        background_color: BackgroundColor(Color::hsl(240., 1.0, 0.5)),
         ..default()
     };
-    let crosshair_entity = commands.spawn(crosshair_bundle).id();
+    let crosshair_entity = commands.spawn((CrossHairMarker, crosshair_bundle)).id();
     commands
         .entity(ui_entity)
         .push_children(&[crosshair_entity]);

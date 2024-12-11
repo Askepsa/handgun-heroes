@@ -1,11 +1,11 @@
-use crate::player::KillCount;
+use crate::{player::KillCount, startup::Kulay};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use rand::{thread_rng, Rng};
 use std::collections::{HashMap, HashSet};
 
-pub const ENEMY_SPAWN_LIMIT: usize = 5;
-const KILL_LEVELS: [usize; ENEMY_SPAWN_LIMIT - 1] = [5, 10, 50, 100];
+pub const ENEMY_SPAWN_LIMIT: usize = 10;
+const KILL_LEVELS: [usize; ENEMY_SPAWN_LIMIT - 1] = [5, 10, 20, 30, 40, 50, 60, 70, 80];
 
 pub struct EnemyPlugin;
 
@@ -20,10 +20,16 @@ impl Plugin for EnemyPlugin {
     }
 }
 
-#[derive(Component)]
-pub struct EnemyMarker;
+#[derive(Bundle, Debug)]
+pub struct EnemyBundle {
+    pub color: Kulay,
+    pub marker: Enemy,
+}
 
 #[derive(Component, Debug)]
+pub struct Enemy;
+
+#[derive(Debug)]
 pub struct EnemyPos {
     pub x: i32,
     pub y: i32,
@@ -34,6 +40,15 @@ pub struct EnemyState {
     pub pos: HashMap<Entity, EnemyPos>,
     pub enemy_count: usize,
     pub enemy_count_updated: bool,
+}
+
+impl EnemyBundle {
+    fn new(color: Kulay) -> Self {
+        Self {
+            color,
+            marker: Enemy,
+        }
+    }
 }
 
 pub fn eliminate_enemy(
@@ -49,10 +64,8 @@ pub fn eliminate_enemy(
 }
 
 // make them strafe to make them appear they're dodging
-pub fn enemy_movement_system(
-    mut enem_pos: Query<&mut Transform, With<EnemyMarker>>,
-    time: Res<Time>,
-) {
+// vary movement speed
+fn enemy_movement_system(mut enem_pos: Query<&mut Transform, With<Enemy>>, time: Res<Time>) {
     for mut pos in enem_pos.iter_mut() {
         pos.translation.z += 10. * time.delta_seconds();
     }
@@ -82,10 +95,9 @@ pub fn enemy_spawn_system(
     if is_kill_count_level && can_update_enemy_count {
         enemy_state.enemy_count += 1;
         enemy_state.enemy_count_updated = true;
-
-        println!("+1 {}", enemy_state.enemy_count);
-        println!("{}", enemy_state.enemy_count);
     }
+
+    println!("{}", enemy_state.enemy_count);
 
     let mut rng = thread_rng();
     while unique_pos.len() < enemy_state.enemy_count {
@@ -102,30 +114,38 @@ pub fn enemy_spawn_system(
             continue;
         }
 
+        // roll the dice
+        let color = if rng.gen_range(0..=1) == 0 {
+            Kulay::Pula
+        } else {
+            Kulay::Asul
+        };
+
         let sphere = Sphere { radius: 1. };
         let sphere_bundle = MaterialMeshBundle {
             mesh: mesh.add(sphere),
             transform: Transform::from_xyz(x as f32, y as f32, -50.),
-            material: material.add(Color::WHITE),
+            material: match color {
+                Kulay::Pula => material.add(StandardMaterial {
+                    base_color: Color::hsl(0., 0.5, 0.5),
+                    reflectance: 0.,
+                    ..default()
+                }),
+                Kulay::Asul => material.add(StandardMaterial {
+                    base_color: Color::hsl(240., 0.8, 0.5),
+                    reflectance: 0.,
+                    ..default()
+                }),
+            },
             ..default()
         };
 
         let enemy_id = commands
-            .spawn((EnemyMarker, sphere_bundle))
+            .spawn((EnemyBundle::new(color), sphere_bundle))
             .insert(Sensor)
             .insert(Collider::ball(1.))
             .insert(CollisionGroups::new(Group::GROUP_2, Group::GROUP_1))
             .id();
         enemy_state.pos.insert(enemy_id, EnemyPos { x, y });
-    }
-}
-
-pub fn reset_system(
-    mut commands: Commands,
-    enemies: Query<Entity, With<EnemyMarker>>,
-    mut enemy_state: ResMut<EnemyState>,
-) {
-    for enemy in &enemies {
-        eliminate_enemy(&mut commands, enemy, &mut enemy_state);
     }
 }

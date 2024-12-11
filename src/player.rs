@@ -1,4 +1,5 @@
 use crate::enemy::{eliminate_enemy, EnemyState};
+use crate::startup::Kulay;
 use crate::ui::*;
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::input::mouse::MouseMotion;
@@ -10,12 +11,13 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(PlayerHealth(5))
+            .insert_resource(PlayerWeapon(Kulay::Asul))
             .insert_resource(KillCount(0))
             .add_systems(Startup, init_player)
-            .add_systems(Update, player_movement_system)
+            .add_systems(Update, (player_movement_system, switch_weapon_system))
             .add_systems(
                 Update,
-                player_shoot_system.run_if(input_just_pressed(KeyCode::KeyV)),
+                player_shoot_system.run_if(input_just_pressed(MouseButton::Left)),
             );
     }
 }
@@ -26,13 +28,16 @@ pub struct CamMarker;
 #[derive(Resource)]
 pub struct PlayerHealth(pub usize);
 
+#[derive(Resource)]
+pub struct PlayerWeapon(pub Kulay);
+
 #[derive(Component)]
 pub struct PlayerMarker;
 
 #[derive(Resource)]
 pub struct KillCount(pub usize);
 
-pub fn init_player(mut commands: Commands) {
+fn init_player(mut commands: Commands) {
     let player_collider = commands
         .spawn(Collider::capsule(
             Vect::new(0., 0., 0.),
@@ -49,7 +54,17 @@ pub fn init_player(mut commands: Commands) {
     commands.spawn((CamMarker, cam)).add_child(player_collider);
 }
 
-pub fn player_movement_system(
+fn switch_weapon_system(keys: Res<ButtonInput<KeyCode>>, mut weapon: ResMut<PlayerWeapon>) {
+    if keys.just_pressed(KeyCode::Digit1) {
+        weapon.0 = Kulay::Asul;
+        println!("Current weapon {:?}", weapon.0);
+    } else if keys.just_pressed(KeyCode::Digit2) {
+        weapon.0 = Kulay::Pula;
+        println!("Current weapon {:?}", weapon.0);
+    }
+}
+
+fn player_movement_system(
     mut mouse_evt: EventReader<MouseMotion>,
     mut cam: Query<&mut Transform, With<CamMarker>>,
     keys: Res<ButtonInput<KeyCode>>,
@@ -78,13 +93,15 @@ pub fn player_movement_system(
     }
 }
 
-pub fn player_shoot_system(
+fn player_shoot_system(
     mut commands: Commands,
     cam: Query<&Transform, With<CamMarker>>,
     mut enemy_state: ResMut<EnemyState>,
     rapier_context: Res<RapierContext>,
     mut scoreboard: ResMut<ScoreBoard>,
     mut kill_count: ResMut<KillCount>,
+    enemies: Query<&Kulay>,
+    player_weapon: Res<PlayerWeapon>,
 ) {
     let cam = cam.single();
     let ray_context = rapier_context.cast_ray(
@@ -95,14 +112,17 @@ pub fn player_shoot_system(
         QueryFilter::default().groups(CollisionGroups::new(Group::default(), Group::GROUP_2)),
     );
 
-    // since we're only dealing with spheres
-    // collider, then there's no use to
-    // check its groups
-    if let Some((entity, _)) = ray_context {
-        // plus points if clicked
-        eliminate_enemy(&mut commands, entity, &mut enemy_state);
-        scoreboard.0 += 100;
-        kill_count.0 += 1;
+    let Some((entity, _)) = ray_context else {
+        return;
+    };
+    if let Ok(color) = enemies.get(entity) {
+        if *color == player_weapon.0 {
+            eliminate_enemy(&mut commands, entity, &mut enemy_state);
+            scoreboard.0 += 100;
+            kill_count.0 += 1;
+        } else {
+            scoreboard.0 -= 100;
+        }
     } else {
         scoreboard.0 -= 100;
     }

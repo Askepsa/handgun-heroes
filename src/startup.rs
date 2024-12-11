@@ -8,6 +8,12 @@ use bevy::window::{CursorGrabMode, PrimaryWindow};
 
 pub struct GameStartUp;
 
+#[derive(Component, Debug, PartialEq)]
+pub enum Kulay {
+    Pula,
+    Asul,
+}
+
 impl Plugin for GameStartUp {
     fn build(&self, app: &mut App) {
         app.add_plugins(UiPlugin)
@@ -37,6 +43,12 @@ fn init_world_system(
     };
     commands.spawn(floor);
 
+    let light = DirectionalLightBundle {
+        transform: Transform::from_xyz(0., 30., 0.),
+        ..default()
+    };
+    commands.spawn(light);
+
     let mut windows = windows.single_mut();
     windows.cursor.grab_mode = CursorGrabMode::Locked;
     windows.cursor.visible = false;
@@ -44,7 +56,18 @@ fn init_world_system(
 
 fn debug_system(input: Res<ButtonInput<MouseButton>>, cam_pos: Query<&Transform, With<CamMarker>>) {
     let cam_pos = cam_pos.single();
-    if input.just_pressed(MouseButton::Left) {
+    if input.just_pressed(MouseButton::Right) {
         info!("{:?}", cam_pos.translation);
+    }
+}
+
+// this should not belong here
+pub fn reset_system(
+    mut commands: Commands,
+    enemies: Query<Entity, With<Enemy>>,
+    mut enemy_state: ResMut<EnemyState>,
+) {
+    for enemy in &enemies {
+        eliminate_enemy(&mut commands, enemy, &mut enemy_state);
     }
 }

@@ -1,4 +1,4 @@
-use crate::enemy::{eliminate_enemy, EnemyMarker, EnemyState};
+use crate::enemy::{eliminate_enemy, Enemy, EnemyState};
 use crate::player::{PlayerHealth, PlayerMarker};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
@@ -14,7 +14,7 @@ impl Plugin for GlobalPhysicsPlugin {
 pub fn player_enemy_collider_system(
     mut commands: Commands,
     player_collider: Query<Entity, With<PlayerMarker>>,
-    enemies: Query<Entity, With<EnemyMarker>>,
+    enemies: Query<Entity, With<Enemy>>,
     rapier_context: Res<RapierContext>,
     mut player_health: ResMut<PlayerHealth>,
     mut enemy_state: ResMut<EnemyState>,
