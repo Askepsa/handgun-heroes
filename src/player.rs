@@ -39,10 +39,10 @@ pub struct KillCount(pub usize);
 
 fn init_player(mut commands: Commands) {
     let player_collider = commands
-        .spawn(Collider::capsule(
-            Vect::new(0., 0., 0.),
-            Vect::new(0., 5., 0.),
-            5.,
+        .spawn(Collider::cuboid(
+            10.,
+            10.,
+            1.,
         ))
         .insert(PlayerMarker)
         .insert(CollisionGroups::new(Group::GROUP_1, Group::GROUP_2))
@@ -51,7 +51,17 @@ fn init_player(mut commands: Commands) {
         transform: Transform::from_xyz(0., 3., 0.),
         ..Default::default()
     };
-    commands.spawn((CamMarker, cam)).add_child(player_collider);
+    let fog = FogSettings {
+        color: Color::srgb(0.25, 0.25, 0.25),
+        falloff: FogFalloff::Linear {
+            start: 15.0,
+            end: 50.0,
+        },
+        ..default()
+    };
+    commands
+        .spawn((CamMarker, cam, fog))
+        .add_child(player_collider);
 }
 
 fn switch_weapon_system(keys: Res<ButtonInput<KeyCode>>, mut weapon: ResMut<PlayerWeapon>) {

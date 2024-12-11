@@ -108,7 +108,7 @@ pub fn enemy_spawn_system(
 
     let mut rng = thread_rng();
     while unique_pos.len() < enemy_state.enemy_count {
-        let (x, y) = (rng.gen_range(-9..=9), rng.gen_range(3..=6));
+        let (x, y) = (rng.gen_range(-9..=9), rng.gen_range(3..=8));
         unique_pos.insert((x, y));
     }
 
