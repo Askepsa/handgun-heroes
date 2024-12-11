@@ -10,6 +10,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(PlayerHealth(5))
+            .insert_resource(KillCount(0))
             .add_systems(Startup, init_player)
             .add_systems(Update, player_movement_system)
             .add_systems(
@@ -27,6 +28,9 @@ pub struct PlayerHealth(pub usize);
 
 #[derive(Component)]
 pub struct PlayerMarker;
+
+#[derive(Resource)]
+pub struct KillCount(pub usize);
 
 pub fn init_player(mut commands: Commands) {
     let player_collider = commands
@@ -80,6 +84,7 @@ pub fn player_shoot_system(
     mut enemy_state: ResMut<EnemyState>,
     rapier_context: Res<RapierContext>,
     mut scoreboard: ResMut<ScoreBoard>,
+    mut kill_count: ResMut<KillCount>,
 ) {
     let cam = cam.single();
     let ray_context = rapier_context.cast_ray(
@@ -97,9 +102,10 @@ pub fn player_shoot_system(
         // plus points if clicked
         eliminate_enemy(&mut commands, entity, &mut enemy_state);
         scoreboard.0 += 100;
+        kill_count.0 += 1;
     } else {
         scoreboard.0 -= 100;
     }
 
-    println!("Score: {}", scoreboard.0);
+    println!("Kill Count: {}", kill_count.0);
 }
