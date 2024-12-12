@@ -23,7 +23,14 @@ pub fn player_enemy_collider_system(
     mut player_health: ResMut<PlayerHealth>,
     mut enemy_state: ResMut<EnemyState>,
     mut damage_event: EventWriter<DamageEvent>,
+    mut next_state: ResMut<NextState<GameState>>,
+    game_state: Res<State<GameState>>,
 ) {
+    if player_health.0 == 0 && *game_state.get() != GameState::GameOver {
+        next_state.set(GameState::GameOver);
+        return;
+    }
+
     let player = player_collider.single();
     for enemy in &enemies {
         // TEMP FIX
@@ -35,4 +42,17 @@ pub fn player_enemy_collider_system(
             eliminate_enemy(&mut commands, enemy, &mut enemy_state);
         }
     }
+}
+
+#[derive(Component, Debug, PartialEq)]
+pub enum Kulay {
+    Pula,
+    Asul,
+}
+
+#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GameState {
+    MainMenu,
+    InGame,
+    GameOver,
 }

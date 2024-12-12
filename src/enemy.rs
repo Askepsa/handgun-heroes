@@ -1,4 +1,4 @@
-use crate::{player::KillCount, startup::Kulay};
+use crate::{player::KillCount, globals::Kulay};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use rand::{thread_rng, Rng};

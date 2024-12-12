@@ -1,18 +1,12 @@
 use crate::enemy::*;
 use crate::globals::*;
-use crate::player::*;
 use crate::hud::*;
+use crate::player::*;
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
 
 pub struct GameStartUp;
-
-#[derive(Component, Debug, PartialEq)]
-pub enum Kulay {
-    Pula,
-    Asul,
-}
 
 impl Plugin for GameStartUp {
     fn build(&self, app: &mut App) {
@@ -26,6 +20,8 @@ impl Plugin for GameStartUp {
                 Update,
                 reset_system.run_if(input_just_pressed(KeyCode::KeyR)),
             );
+
+        app.insert_state(GameState::InGame);
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::enemy::{eliminate_enemy, EnemyState};
-use crate::startup::Kulay;
+use crate::globals::Kulay;
 use crate::hud::*;
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::input::mouse::MouseMotion;
@@ -10,7 +10,7 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(PlayerHealth(5))
+        app.insert_resource(PlayerHealth(1))
             .insert_resource(PlayerWeapon(Kulay::Asul))
             .insert_resource(KillCount(0))
             .add_systems(Startup, init_player)
@@ -108,7 +108,7 @@ fn player_shoot_system(
     cam: Query<&Transform, With<CamMarker>>,
     mut enemy_state: ResMut<EnemyState>,
     rapier_context: Res<RapierContext>,
-    mut scoreboard: ResMut<ScoreBoard>,
+    mut scoreboard: ResMut<Score>,
     mut kill_count: ResMut<KillCount>,
     enemies: Query<&Kulay>,
     player_weapon: Res<PlayerWeapon>,
