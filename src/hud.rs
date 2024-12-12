@@ -5,9 +5,9 @@ use crate::{
     player::{PlayerHealth, PlayerWeapon},
 };
 
-pub struct UiPlugin;
+pub struct HudPlugin;
 
-impl Plugin for UiPlugin {
+impl Plugin for HudPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Score(0))
             .insert_resource(HealthBarState(Vec::new()))

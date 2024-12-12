@@ -10,7 +10,7 @@ pub struct GameStartUp;
 
 impl Plugin for GameStartUp {
     fn build(&self, app: &mut App) {
-        app.add_plugins(UiPlugin)
+        app.add_plugins(HudPlugin)
             .add_plugins(PlayerPlugin)
             .add_plugins(EnemyPlugin)
             .add_plugins(GlobalPhysicsPlugin)
