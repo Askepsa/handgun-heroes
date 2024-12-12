@@ -1,5 +1,5 @@
 pub mod enemy;
-pub mod global_physics;
+pub mod globals;
 pub mod player;
 pub mod startup;
-pub mod ui;
+pub mod hud;

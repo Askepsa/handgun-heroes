@@ -1,6 +1,6 @@
 use crate::enemy::{eliminate_enemy, EnemyState};
 use crate::startup::Kulay;
-use crate::ui::*;
+use crate::hud::*;
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    global_physics::DamageEvent,
+    globals::DamageEvent,
     player::{PlayerHealth, PlayerWeapon},
     startup::Kulay,
 };

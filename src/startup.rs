@@ -1,7 +1,7 @@
 use crate::enemy::*;
-use crate::global_physics::*;
+use crate::globals::*;
 use crate::player::*;
-use crate::ui::*;
+use crate::hud::*;
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
