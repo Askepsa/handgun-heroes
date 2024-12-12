@@ -104,8 +104,6 @@ pub fn enemy_spawn_system(
         enemy_state.enemy_count_updated = true;
     }
 
-    println!("{}", enemy_state.enemy_count);
-
     let mut rng = thread_rng();
     while unique_pos.len() < enemy_state.enemy_count {
         let (x, y) = (rng.gen_range(-9..=9), rng.gen_range(3..=8));

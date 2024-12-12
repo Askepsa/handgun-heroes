@@ -1,17 +1,24 @@
 use bevy::prelude::*;
 
-use crate::{player::PlayerWeapon, startup::Kulay};
+use crate::{
+    global_physics::DamageEvent,
+    player::{PlayerHealth, PlayerWeapon},
+    startup::Kulay,
+};
 
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ScoreBoard(0))
+            .insert_resource(HealthBarState(Vec::new()))
             .add_systems(Startup, (init_crosshair_ui_system, init_scoreboard_system))
+            .add_systems(Startup, init_healthbar_hud)
             .add_systems(
                 Update,
                 (refresh_scoreboard_system, refresh_crosshair_color_system),
-            );
+            )
+            .add_systems(Update, animate_health_deplete_system);
     }
 }
 
@@ -23,6 +30,12 @@ pub struct ScoreBoard(pub i32);
 
 #[derive(Component)]
 pub struct CrossHairMarker;
+
+#[derive(Component)]
+struct HealthDepleteMarker;
+
+#[derive(Resource)]
+struct HealthBarState(pub Vec<Entity>);
 
 // rename these shets
 pub fn refresh_scoreboard_system(
@@ -47,6 +60,79 @@ fn refresh_crosshair_color_system(
         Kulay::Asul => BackgroundColor(Color::hsl(240., 1.0, 0.5)),
         Kulay::Pula => BackgroundColor(Color::hsl(0., 0.5, 0.5)),
     };
+}
+
+fn animate_health_deplete_system(
+    mut commands: Commands,
+    mut query: Query<(&mut Transform, Entity), With<HealthDepleteMarker>>,
+    mut damage_observer: EventReader<DamageEvent>,
+    mut health_bar_state: ResMut<HealthBarState>,
+    time: Res<Time>,
+    mut hearts_to_animate: Local<Vec<Entity>>,
+) {
+    for _ in damage_observer.read() { // osu how?!?
+        let Some(health_bar_entity) = health_bar_state.0.pop() else {
+            return;
+        };
+        let Ok((_, entity)) = query.get(health_bar_entity) else {
+            return;
+        };
+        hearts_to_animate.push(entity);
+    }
+
+    hearts_to_animate.retain_mut(|health_bar_entity| {
+        let Ok((mut transform, entity)) = query.get_mut(*health_bar_entity) else {
+            return false;
+        };
+        if transform.scale.x >= 0. {
+            transform.scale -= Vec3::splat(1.) * time.delta_seconds();
+        } else {
+            commands.entity(entity).despawn(); // should also despawn its parent
+            return false;
+        }
+        true
+    });
+}
+
+fn init_healthbar_hud(
+    mut commands: Commands,
+    player_health: Res<PlayerHealth>,
+    asset_server: Res<AssetServer>,
+    mut health_bar_state: ResMut<HealthBarState>,
+) {
+    let container = NodeBundle {
+        style: Style {
+            width: Val::Percent(100.),
+            height: Val::Percent(100.),
+            align_items: AlignItems::End,
+            position_type: PositionType::Absolute,
+            display: Display::Flex,
+            padding: UiRect::all(Val::Px(50.)),
+            ..default()
+        },
+        ..default()
+    };
+    let container = commands.spawn(container).id();
+    let heart = UiImage::new(asset_server.load("pixel_heart.png")); // change img
+    let mut stack: Vec<Entity> = vec![];
+    for _ in 0..player_health.0 {
+        let heart_container = NodeBundle {
+            style: Style {
+                width: Val::Px(32.),
+                height: Val::Px(32.),
+                margin: UiRect::all(Val::Px(5.)),
+                ..default()
+            },
+            ..default()
+        };
+        let heart_hud = commands
+            .spawn((heart_container, heart.clone(), HealthDepleteMarker))
+            .id();
+        commands.entity(container).push_children(&[heart_hud]);
+        stack.push(heart_hud);
+    }
+
+    health_bar_state.0 = stack;
 }
 
 fn init_scoreboard_system(mut commands: Commands, score_board: Res<ScoreBoard>) {
