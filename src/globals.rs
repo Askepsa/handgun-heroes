@@ -1,19 +1,54 @@
 use crate::enemy::{eliminate_enemy, Enemy, EnemyState};
+use crate::hud::clean_hud_system;
 use crate::player::{PlayerHealth, PlayerMarker};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-pub struct GlobalPhysicsPlugin;
+#[derive(Component, Debug, PartialEq)]
+pub enum Kulay {
+    Pula,
+    Asul,
+}
 
-impl Plugin for GlobalPhysicsPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_event::<DamageEvent>()
-            .add_systems(Update, player_enemy_collider_system);
-    }
+#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GameState {
+    MainMenu,
+    InGame,
+    GameOver,
 }
 
 #[derive(Event)]
 pub struct DamageEvent;
+
+pub struct Global;
+
+impl Plugin for Global {
+    fn build(&self, app: &mut App) {
+        app.add_event::<DamageEvent>()
+            .add_systems(Update, player_enemy_collider_system)
+            .add_systems(
+                Update,
+                (clean_hud_system, update_game_state_to_ingame)
+                    .run_if(mouse_pressed_and_not_ingame),
+            );
+    }
+}
+
+fn mouse_pressed_and_not_ingame(
+    game_state: Res<State<GameState>>,
+    input: Res<ButtonInput<MouseButton>>,
+) -> bool {
+    *game_state.get() != GameState::InGame && input.just_pressed(MouseButton::Left)
+}
+
+fn update_game_state_to_ingame(
+    game_state: Res<State<GameState>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    if *game_state.get() != GameState::InGame {
+        next_state.set(GameState::InGame);
+    }
+}
 
 pub fn player_enemy_collider_system(
     mut commands: Commands,
@@ -42,17 +77,4 @@ pub fn player_enemy_collider_system(
             eliminate_enemy(&mut commands, enemy, &mut enemy_state);
         }
     }
-}
-
-#[derive(Component, Debug, PartialEq)]
-pub enum Kulay {
-    Pula,
-    Asul,
-}
-
-#[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
-pub enum GameState {
-    MainMenu,
-    InGame,
-    GameOver,
 }

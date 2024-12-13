@@ -39,11 +39,7 @@ pub struct KillCount(pub usize);
 
 fn init_player(mut commands: Commands) {
     let player_collider = commands
-        .spawn(Collider::cuboid(
-            10.,
-            10.,
-            1.,
-        ))
+        .spawn(Collider::cuboid(10., 10., 1.))
         .insert(PlayerMarker)
         .insert(CollisionGroups::new(Group::GROUP_1, Group::GROUP_2))
         .id();
@@ -67,10 +63,8 @@ fn init_player(mut commands: Commands) {
 fn switch_weapon_system(keys: Res<ButtonInput<KeyCode>>, mut weapon: ResMut<PlayerWeapon>) {
     if keys.just_pressed(KeyCode::Digit1) {
         weapon.0 = Kulay::Asul;
-        println!("Current weapon {:?}", weapon.0);
     } else if keys.just_pressed(KeyCode::Digit2) {
         weapon.0 = Kulay::Pula;
-        println!("Current weapon {:?}", weapon.0);
     }
 }
 
@@ -136,6 +130,4 @@ fn player_shoot_system(
     } else {
         scoreboard.0 -= 100;
     }
-
-    println!("Kill Count: {}", kill_count.0);
 }

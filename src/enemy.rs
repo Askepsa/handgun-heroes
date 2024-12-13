@@ -1,4 +1,8 @@
-use crate::{player::KillCount, globals::Kulay};
+use crate::{
+    globals::{GameState, Kulay},
+    player::KillCount,
+    startup::reset_system,
+};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use rand::{thread_rng, Rng};
@@ -16,7 +20,20 @@ impl Plugin for EnemyPlugin {
             enemy_count: 1,
             enemy_count_updated: false,
         })
-        .add_systems(Update, (enemy_spawn_system, enemy_movement_system));
+        .add_systems(
+            Update,
+            (
+                enemy_spawn_system.run_if(in_state(GameState::InGame)),
+                enemy_movement_system,
+            ),
+        )
+        .add_systems(
+            OnTransition {
+                exited: GameState::GameOver,
+                entered: GameState::InGame,
+            },
+            reset_system,
+        );
     }
 }
 

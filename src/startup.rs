@@ -13,7 +13,7 @@ impl Plugin for GameStartUp {
         app.add_plugins(HudPlugin)
             .add_plugins(PlayerPlugin)
             .add_plugins(EnemyPlugin)
-            .add_plugins(GlobalPhysicsPlugin)
+            .add_plugins(Global)
             .add_systems(Startup, init_world_system)
             .add_systems(Update, debug_system)
             .add_systems(
@@ -58,12 +58,19 @@ fn debug_system(input: Res<ButtonInput<MouseButton>>, cam_pos: Query<&Transform,
 }
 
 // this should not belong here
+// move this to global module
 pub fn reset_system(
     mut commands: Commands,
     enemies: Query<Entity, With<Enemy>>,
     mut enemy_state: ResMut<EnemyState>,
+    mut score: ResMut<Score>,
+    mut hud_entities: ResMut<HudEntities>,
+    mut player_health: ResMut<PlayerHealth>,
 ) {
     for enemy in &enemies {
         eliminate_enemy(&mut commands, enemy, &mut enemy_state);
     }
+    score.0 = 0;
+    hud_entities.0.clear();
+    player_health.0 = 1;
 }

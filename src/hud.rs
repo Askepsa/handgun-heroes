@@ -14,12 +14,14 @@ impl Plugin for HudPlugin {
             .insert_resource(HudEntities(Vec::new()));
 
         app.add_systems(
-            Startup,
+            OnEnter(GameState::InGame),
             (
+                clean_hud_system,
                 init_crosshair_ui_system,
                 init_scoreboard_system,
                 init_healthbar_hud,
-            ),
+            )
+                .chain(),
         )
         .add_systems(
             Update,
@@ -27,7 +29,8 @@ impl Plugin for HudPlugin {
                 refresh_scoreboard_system,
                 refresh_crosshair_color_system,
                 animate_health_deplete_system,
-            ),
+            )
+                .run_if(in_state(GameState::InGame)),
         )
         .add_systems(
             OnEnter(GameState::GameOver),
@@ -52,7 +55,7 @@ struct HealthDepleteMarker;
 struct HealthBarState(pub Vec<Entity>);
 
 #[derive(Resource)]
-struct HudEntities(pub Vec<Entity>);
+pub struct HudEntities(pub Vec<Entity>);
 
 // rename these shets
 pub fn refresh_scoreboard_system(
@@ -70,7 +73,7 @@ pub fn refresh_scoreboard_system(
     }
 }
 
-fn clean_hud_system(mut commands: Commands, mut hud_entities: ResMut<HudEntities>) {
+pub fn clean_hud_system(mut commands: Commands, mut hud_entities: ResMut<HudEntities>) {
     for _ in 0..hud_entities.0.len() {
         if let Some(entity) = hud_entities.0.pop() {
             if let Some(entity) = commands.get_entity(entity) {
