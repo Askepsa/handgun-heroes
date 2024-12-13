@@ -84,13 +84,13 @@ pub fn clean_hud_system(mut commands: Commands, mut hud_entities: ResMut<HudEnti
 }
 
 fn refresh_crosshair_color_system(
-    mut crosshair: Query<&mut BackgroundColor, With<CrossHairMarker>>,
+    mut crosshair: Query<&mut BorderColor, With<CrossHairMarker>>,
     player_weapon: Res<PlayerWeapon>,
 ) {
     for mut crosshair in crosshair.iter_mut() {
         *crosshair = match player_weapon.0 {
-            Kulay::Asul => BackgroundColor(Color::hsl(240., 1.0, 0.5)),
-            Kulay::Pula => BackgroundColor(Color::hsl(0., 0.5, 0.5)),
+            Kulay::Asul => BorderColor(Color::hsl(197.4, 0.714, 0.575)),
+            Kulay::Pula => BorderColor(Color::hsl(0., 0.5, 0.5)),
         };
     }
 }
@@ -236,11 +236,12 @@ fn init_crosshair_ui_system(mut commands: Commands, mut hud_entities: ResMut<Hud
 
     let crosshair_bundle = NodeBundle {
         style: Style {
-            height: Val::Px(5.),
-            width: Val::Px(5.),
+            height: Val::Px(8.),
+            width: Val::Px(8.),
+            border: UiRect::all(Val::Px(1.)),
             ..default()
         },
-        background_color: BackgroundColor(Color::hsl(240., 1.0, 0.5)),
+        border_color: BorderColor(Color::hsl(0., 0.5, 0.5)),
         ..default()
     };
     let crosshair_entity = commands.spawn((CrossHairMarker, crosshair_bundle)).id();
