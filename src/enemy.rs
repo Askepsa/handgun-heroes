@@ -1,7 +1,7 @@
 use crate::{
     globals::{GameState, Kulay},
     player::KillCount,
-    startup::reset_system,
+    globals::reset_system,
 };
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;

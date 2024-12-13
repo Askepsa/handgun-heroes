@@ -1,5 +1,5 @@
 use crate::enemy::{eliminate_enemy, Enemy, EnemyState};
-use crate::hud::clean_hud_system;
+use crate::hud::{clean_hud_system, HudEntities, Score};
 use crate::player::{PlayerHealth, PlayerMarker};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
@@ -77,4 +77,22 @@ pub fn player_enemy_collider_system(
             eliminate_enemy(&mut commands, enemy, &mut enemy_state);
         }
     }
+}
+
+// this should not belong here
+// move this to global module
+pub fn reset_system(
+    mut commands: Commands,
+    enemies: Query<Entity, With<Enemy>>,
+    mut enemy_state: ResMut<EnemyState>,
+    mut score: ResMut<Score>,
+    mut hud_entities: ResMut<HudEntities>,
+    mut player_health: ResMut<PlayerHealth>,
+) {
+    for enemy in &enemies {
+        eliminate_enemy(&mut commands, enemy, &mut enemy_state);
+    }
+    score.0 = 0;
+    hud_entities.0.clear();
+    player_health.0 = 1;
 }

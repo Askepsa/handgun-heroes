@@ -56,21 +56,3 @@ fn debug_system(input: Res<ButtonInput<MouseButton>>, cam_pos: Query<&Transform,
         info!("{:?}", cam_pos.translation);
     }
 }
-
-// this should not belong here
-// move this to global module
-pub fn reset_system(
-    mut commands: Commands,
-    enemies: Query<Entity, With<Enemy>>,
-    mut enemy_state: ResMut<EnemyState>,
-    mut score: ResMut<Score>,
-    mut hud_entities: ResMut<HudEntities>,
-    mut player_health: ResMut<PlayerHealth>,
-) {
-    for enemy in &enemies {
-        eliminate_enemy(&mut commands, enemy, &mut enemy_state);
-    }
-    score.0 = 0;
-    hud_entities.0.clear();
-    player_health.0 = 1;
-}
