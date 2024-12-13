@@ -31,19 +31,33 @@ fn init_world_system(
     mut material: ResMut<Assets<StandardMaterial>>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
 ) {
-    let plane = Plane3d::new(Vec3::new(0., 1., 0.), Vec2::new(20., 20.));
+    let plane = Plane3d::new(Vec3::new(0., 1., 0.), Vec2::new(0.3, 0.3));
     let floor = MaterialMeshBundle {
         mesh: mesh.add(plane),
         material: material.add(Color::WHITE),
+        transform: Transform::from_xyz(0., 2.5, 0.),
         ..Default::default()
     };
     commands.spawn(floor);
 
+    // look at me
     let light = DirectionalLightBundle {
-        transform: Transform::from_xyz(0., 30., 0.),
+        transform: Transform::from_xyz(0., 25., 0.),
         ..default()
     };
-    commands.spawn(light);
+    let _light = commands.spawn(light).id();
+    let _sphere = MaterialMeshBundle { // sphere to see where the light is at
+        mesh: mesh.add(Sphere { radius: 1. }),
+        material: material.add(StandardMaterial {
+            base_color: Color::hsl(0., 0.5, 0.5),
+            reflectance: 0.,
+            ..default()
+        }),
+        ..default()
+    };
+
+    let _sphere = commands.spawn(_sphere).id();
+    commands.entity(_light).push_children(&[_sphere]);
 
     let mut windows = windows.single_mut();
     windows.cursor.grab_mode = CursorGrabMode::Locked;

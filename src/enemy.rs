@@ -1,7 +1,7 @@
 use crate::{
+    globals::reset_system,
     globals::{GameState, Kulay},
     player::KillCount,
-    globals::reset_system,
 };
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
@@ -15,25 +15,21 @@ pub struct EnemyPlugin;
 
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(EnemyState {
-            pos: HashMap::new(),
-            enemy_count: 1,
-            enemy_count_updated: false,
-        })
-        .add_systems(
-            Update,
-            (
-                enemy_spawn_system.run_if(in_state(GameState::InGame)),
-                enemy_movement_system,
-            ),
-        )
-        .add_systems(
-            OnTransition {
-                exited: GameState::GameOver,
-                entered: GameState::InGame,
-            },
-            reset_system,
-        );
+        app.insert_resource(EnemyState::default())
+            .add_systems(
+                Update,
+                (
+                    enemy_spawn_system.run_if(in_state(GameState::InGame)),
+                    enemy_movement_system,
+                ),
+            )
+            .add_systems(
+                OnTransition {
+                    exited: GameState::GameOver,
+                    entered: GameState::InGame,
+                },
+                reset_system,
+            );
     }
 }
 
@@ -61,6 +57,16 @@ pub struct EnemyState {
     pub pos: HashMap<Entity, EnemyPos>,
     pub enemy_count: usize,
     pub enemy_count_updated: bool,
+}
+
+impl Default for EnemyState {
+    fn default() -> Self {
+        Self {
+            pos: HashMap::new(),
+            enemy_count: 1,
+            enemy_count_updated: false,
+        }
+    }
 }
 
 impl EnemyBundle {

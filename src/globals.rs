@@ -1,6 +1,6 @@
 use crate::enemy::{eliminate_enemy, Enemy, EnemyState};
 use crate::hud::{clean_hud_system, HudEntities, Score};
-use crate::player::{PlayerHealth, PlayerMarker};
+use crate::player::{KillCount, PlayerHealth, PlayerMarker};
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
@@ -88,11 +88,15 @@ pub fn reset_system(
     mut score: ResMut<Score>,
     mut hud_entities: ResMut<HudEntities>,
     mut player_health: ResMut<PlayerHealth>,
+    mut kill_count: ResMut<KillCount>,
 ) {
     for enemy in &enemies {
         eliminate_enemy(&mut commands, enemy, &mut enemy_state);
     }
+
     score.0 = 0;
     hud_entities.0.clear();
-    player_health.0 = 1;
+    player_health.0 = 5;
+    kill_count.0 = 0;
+    *enemy_state = EnemyState::default();
 }

@@ -10,7 +10,7 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(PlayerHealth(1))
+        app.insert_resource(PlayerHealth(5))
             .insert_resource(PlayerWeapon(Kulay::Asul))
             .insert_resource(KillCount(0))
             .add_systems(Startup, init_player)
@@ -44,7 +44,7 @@ fn init_player(mut commands: Commands) {
         .insert(CollisionGroups::new(Group::GROUP_1, Group::GROUP_2))
         .id();
     let cam = Camera3dBundle {
-        transform: Transform::from_xyz(0., 3., 0.),
+        transform: Transform::from_xyz(0., 2.6, 0.),
         ..Default::default()
     };
     let fog = FogSettings {
