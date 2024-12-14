@@ -2,8 +2,8 @@ use crate::enemy::{eliminate_enemy, EnemyState};
 use crate::globals::Kulay;
 use crate::hud::*;
 use bevy::input::common_conditions::input_just_pressed;
-use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 use bevy_rapier3d::prelude::*;
 
 pub struct PlayerPlugin;
@@ -44,7 +44,7 @@ fn init_player(mut commands: Commands) {
         .insert(CollisionGroups::new(Group::GROUP_1, Group::GROUP_2))
         .id();
     let cam = Camera3dBundle {
-        transform: Transform::from_xyz(0., 2.6, 0.),
+        transform: Transform::from_xyz(0., 4.6, 0.),
         ..Default::default()
     };
     let fog = FogSettings {
@@ -69,19 +69,11 @@ fn switch_weapon_system(keys: Res<ButtonInput<KeyCode>>, mut weapon: ResMut<Play
 }
 
 fn player_movement_system(
-    mut mouse_evt: EventReader<MouseMotion>,
     mut cam: Query<&mut Transform, With<CamMarker>>,
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
     let mut cam = cam.single_mut();
-    for mouse_motion in mouse_evt.read() {
-        let yaw = -mouse_motion.delta.x * 0.003;
-        let pitch = -mouse_motion.delta.y * 0.003;
-        cam.rotate_y(yaw);
-        cam.rotate_local_x(pitch);
-    }
-
     for key in keys.get_pressed() {
         let mut movement = Vec3::ZERO;
         match key {
@@ -99,18 +91,28 @@ fn player_movement_system(
 
 fn player_shoot_system(
     mut commands: Commands,
-    cam: Query<&Transform, With<CamMarker>>,
+    cam: Query<(&GlobalTransform, &Camera), With<CamMarker>>,
     mut enemy_state: ResMut<EnemyState>,
     rapier_context: Res<RapierContext>,
     mut scoreboard: ResMut<Score>,
     mut kill_count: ResMut<KillCount>,
     enemies: Query<&Kulay>,
     player_weapon: Res<PlayerWeapon>,
+    win: Query<&Window, With<PrimaryWindow>>,
 ) {
-    let cam = cam.single();
+    let (cam_transform, cam) = cam.single();
+
+    let Some(cursor_position) = win.single().cursor_position() else {
+        return;
+    };
+
+    let Some(ray) = cam.viewport_to_world(cam_transform, cursor_position) else {
+        return;
+    };
+
     let ray_context = rapier_context.cast_ray(
-        cam.translation,
-        *cam.forward(),
+        ray.origin,
+        *ray.direction,
         255.,
         false,
         QueryFilter::default().groups(CollisionGroups::new(Group::default(), Group::GROUP_2)),
@@ -119,6 +121,7 @@ fn player_shoot_system(
     let Some((entity, _)) = ray_context else {
         return;
     };
+
     if let Ok(color) = enemies.get(entity) {
         if *color == player_weapon.0 {
             eliminate_enemy(&mut commands, entity, &mut enemy_state);

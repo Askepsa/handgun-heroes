@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::{
     globals::{DamageEvent, GameState, Kulay},
@@ -32,6 +32,7 @@ impl Plugin for HudPlugin {
             )
                 .run_if(in_state(GameState::InGame)),
         )
+        .add_systems(Update, update_crosshair_pos)
         .add_systems(
             OnEnter(GameState::GameOver),
             (clean_hud_system, init_gameover_screen).chain(),
@@ -219,14 +220,24 @@ fn init_scoreboard_system(
         .push_children(&[scoreboard_entity]);
 }
 
+fn update_crosshair_pos(
+    win: Query<&Window, With<PrimaryWindow>>,
+    mut crosshair: Query<&mut Style, With<CrossHairMarker>>,
+) {
+    for mut crosshair in crosshair.iter_mut() {
+        if let Some(pos) = win.single().cursor_position() {
+            crosshair.left = Val::Px(pos.x - 10.);
+            crosshair.top = Val::Px(pos.y - 20.);
+        }
+    }
+}
+
 fn init_crosshair_ui_system(mut commands: Commands, mut hud_entities: ResMut<HudEntities>) {
     let ui_screen = NodeBundle {
         style: Style {
             position_type: PositionType::Absolute,
             height: Val::Percent(100.),
             width: Val::Percent(100.),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
             ..default()
         },
         ..default()
@@ -236,11 +247,12 @@ fn init_crosshair_ui_system(mut commands: Commands, mut hud_entities: ResMut<Hud
 
     let crosshair_bundle = NodeBundle {
         style: Style {
-            height: Val::Px(8.),
-            width: Val::Px(8.),
-            border: UiRect::all(Val::Px(1.)),
+            height: Val::Px(35.),
+            width: Val::Px(35.),
+            border: UiRect::all(Val::Px(5.)),
             ..default()
         },
+        border_radius: BorderRadius::all(Val::Percent(50.)),
         border_color: BorderColor(Color::hsl(0., 0.5, 0.5)),
         ..default()
     };
