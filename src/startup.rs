@@ -14,7 +14,7 @@ impl Plugin for GameStartUp {
             .add_plugins(PlayerPlugin)
             .add_plugins(EnemyPlugin)
             .add_plugins(Global)
-            .add_systems(Startup, init_world_system)
+            .add_systems(Startup, (init_world_system, init_bgm))
             .add_systems(Update, debug_system)
             .add_systems(
                 Update,
@@ -49,6 +49,13 @@ fn init_world_system(
     let mut windows = windows.single_mut();
     windows.cursor.grab_mode = CursorGrabMode::Locked;
     windows.cursor.visible = false;
+}
+
+fn init_bgm(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn(AudioBundle {
+        source: asset_server.load("zenith.ogg"),
+        settings: PlaybackSettings::LOOP,
+    });
 }
 
 fn debug_system(input: Res<ButtonInput<MouseButton>>, cam_pos: Query<&Transform, With<CamMarker>>) {

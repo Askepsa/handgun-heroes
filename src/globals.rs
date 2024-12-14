@@ -60,6 +60,7 @@ pub fn player_enemy_collider_system(
     mut damage_event: EventWriter<DamageEvent>,
     mut next_state: ResMut<NextState<GameState>>,
     game_state: Res<State<GameState>>,
+    asset_server: Res<AssetServer>
 ) {
     if player_health.0 == 0 && *game_state.get() != GameState::GameOver {
         next_state.set(GameState::GameOver);
@@ -73,6 +74,10 @@ pub fn player_enemy_collider_system(
             if player_health.0 != 0 {
                 player_health.0 -= 1;
                 damage_event.send(DamageEvent);
+                commands.spawn(AudioBundle {
+                    source: asset_server.load("rizz.ogg"),
+                    settings: PlaybackSettings::default(),
+                });
             }
             eliminate_enemy(&mut commands, enemy, &mut enemy_state);
         }

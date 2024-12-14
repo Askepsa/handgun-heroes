@@ -18,7 +18,7 @@ impl Plugin for PlayerPlugin {
             .add_systems(Update, (player_movement_system, switch_weapon_system))
             .add_systems(
                 Update,
-                player_shoot_system.run_if(input_just_pressed(MouseButton::Left)),
+                (player_shoot_system).run_if(input_just_pressed(MouseButton::Left)),
             );
     }
 }
@@ -110,6 +110,7 @@ fn player_shoot_system(
     enemies: Query<&Kulay>,
     player_weapon: Res<PlayerWeapon>,
     win: Query<&Window, With<PrimaryWindow>>,
+    asset_server: Res<AssetServer>,
 ) {
     let (cam_transform, cam) = cam.single();
 
@@ -138,8 +139,16 @@ fn player_shoot_system(
             eliminate_enemy(&mut commands, entity, &mut enemy_state);
             scoreboard.0 += 100;
             kill_count.0 += 1;
+            commands.spawn(AudioBundle {
+                source: asset_server.load("attack.ogg"),
+                settings: PlaybackSettings::DESPAWN,
+            });
         } else {
             scoreboard.0 -= 100;
+            commands.spawn(AudioBundle {
+                source: asset_server.load("damage.ogg"),
+                settings: PlaybackSettings::DESPAWN,
+            });
         }
     } else {
         scoreboard.0 -= 100;
