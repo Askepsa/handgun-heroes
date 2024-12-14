@@ -28,6 +28,8 @@ impl Plugin for GameStartUp {
 fn init_world_system(
     mut commands: Commands,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    mut mesh: ResMut<Assets<Mesh>>,
+    mut material: ResMut<Assets<StandardMaterial>>,
 ) {
     // look at me
     let light = DirectionalLightBundle {
@@ -35,6 +37,14 @@ fn init_world_system(
         ..default()
     };
     commands.spawn(light);
+
+    let sphere = MaterialMeshBundle {
+        mesh: mesh.add(Sphere { radius: 300. }),
+        transform: Transform::from_xyz(0., 10., -1000.),
+        material: material.add(StandardMaterial::default()),
+        ..default()
+    };
+    commands.spawn(sphere);
 
     let mut windows = windows.single_mut();
     windows.cursor.grab_mode = CursorGrabMode::Locked;
@@ -44,6 +54,6 @@ fn init_world_system(
 fn debug_system(input: Res<ButtonInput<MouseButton>>, cam_pos: Query<&Transform, With<CamMarker>>) {
     let cam_pos = cam_pos.single();
     if input.just_pressed(MouseButton::Right) {
-        info!("{:?}", cam_pos.translation);
+        info!("{:#?}", cam_pos);
     }
 }

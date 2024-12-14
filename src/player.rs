@@ -2,6 +2,7 @@ use crate::enemy::{eliminate_enemy, EnemyState};
 use crate::globals::Kulay;
 use crate::hud::*;
 use bevy::input::common_conditions::input_just_pressed;
+use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_rapier3d::prelude::*;
@@ -51,7 +52,7 @@ fn init_player(mut commands: Commands) {
         color: Color::srgb(0.25, 0.25, 0.25),
         falloff: FogFalloff::Linear {
             start: 15.0,
-            end: 50.0,
+            end: 100.0,
         },
         ..default()
     };
@@ -69,11 +70,21 @@ fn switch_weapon_system(keys: Res<ButtonInput<KeyCode>>, mut weapon: ResMut<Play
 }
 
 fn player_movement_system(
+    mut mouse_evt: EventReader<MouseMotion>,
     mut cam: Query<&mut Transform, With<CamMarker>>,
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
     let mut cam = cam.single_mut();
+    for mouse_motion in mouse_evt.read() {
+        let delta_yaw = -mouse_motion.delta.x * 0.0005;
+        let delta_pitch = -mouse_motion.delta.y * 0.0005;
+        let (yaw, pitch, roll) = cam.rotation.to_euler(EulerRot::YXZ);
+        let yaw = (yaw + delta_yaw).clamp(-0.1, 0.1);
+        let pitch = (pitch + delta_pitch).clamp(-0.1, 0.1);
+        cam.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, roll);
+    }
+
     for key in keys.get_pressed() {
         let mut movement = Vec3::ZERO;
         match key {
